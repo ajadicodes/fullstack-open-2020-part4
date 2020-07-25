@@ -9,6 +9,7 @@
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "express-async-errors": "^3.1.1",
     "lodash": "^4.17.19",
     "mongoose": "^5.9.25"
   },
@@ -18,17 +19,19 @@
     "eslint-plugin-import": "^2.21.2",
     "jest": "^26.1.0",
     "jest-extended": "^0.11.5",
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.4",
+    "supertest": "^4.0.2"
   },
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "jest --verbose"
+    "start": "NODE_ENV=production node index.js",
+    "dev": "NODE_ENV=development nodemon index.js",
+    "test": "NODE_ENV=test jest --verbose"
   },
   "jest": {
     "testEnvironment": "node",
     "setupFilesAfterEnv": [
       "jest-extended"
-    ]
+    ],
+    "testTimeout": 20000
   }
 }
