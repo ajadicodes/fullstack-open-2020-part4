@@ -1,0 +1,10 @@
+POST http://localhost:3003/api/blogs
+Content-Type: application/json
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InN1cGVycm9vdDIiLCJpZCI6IjVmMjFkYjljNWZlMGVkMmNlODY2OTE5ZiIsImlhdCI6MTU5NjA1NDQ3M30.nz4HBaJAcgrYlHi2dwitT7KkPBtElqioNS7i7S7XbHM
+
+{
+  "title": "Created by super root 2 live!!!",
+  "author": "GGO",
+  "url": "https://www.ggo.com",
+  "likes": 8
+}
