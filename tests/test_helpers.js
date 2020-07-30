@@ -23,19 +23,6 @@ const initialBlogList = [
   },
 ];
 
-const initialBlogCreators = {
-  user_1: {
-    username: "root",
-    name: "Root",
-    password: "root",
-  },
-  user_2: {
-    username: "superroot",
-    name: "Super Root",
-    password: "superroot",
-  },
-};
-
 const blogsInDatabase = async () => {
   const blogs = await Blog.find({});
   return blogs.map((blog) => blog.toJSON());

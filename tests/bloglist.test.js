@@ -34,6 +34,19 @@ describe("when there is initially some blogs saved", () => {
 });
 
 describe("addition of a new blog", () => {
+  beforeEach(async () => {
+    await User.deleteMany({});
+
+    const newUserReg = {
+      username: "superroot2",
+      name: "SR2",
+      password: "superroot2",
+    };
+
+    // save user to database using already created router
+    await api.post(usersUrl).send(newUserReg);
+  });
+
   test("HTTP POST request is successful", async () => {
     const newBlogPost = {
       title: "Some foo bar blog",
@@ -42,8 +55,14 @@ describe("addition of a new blog", () => {
       likes: 9,
     };
 
+    const loginDetails = await api.post("/api/login").send({
+      username: "superroot2",
+      password: "superroot2",
+    });
+
     await api
       .post(blogsUrl)
+      .auth(loginDetails.body.token, { type: "bearer" })
       .send(newBlogPost)
       .expect(200)
       .expect("Content-Type", /application\/json/);
@@ -62,8 +81,14 @@ describe("addition of a new blog", () => {
       url: "https://www.example.com",
     };
 
+    const loginDetails = await api.post("/api/login").send({
+      username: "superroot2",
+      password: "superroot2",
+    });
+
     await api
       .post(blogsUrl)
+      .auth(loginDetails.body.token, { type: "bearer" })
       .send(newBlogPost)
       .expect(200)
       .expect("Content-Type", /application\/json/);
@@ -79,54 +104,156 @@ describe("addition of a new blog", () => {
       likes: 8,
     };
 
+    const loginDetails = await api.post("/api/login").send({
+      username: "superroot2",
+      password: "superroot2",
+    });
+
     const response = await api
       .post(blogsUrl)
+      .auth(loginDetails.body.token, { type: "bearer" })
       .send(newBlogPost)
       .expect(400)
       .expect("Content-Type", /application\/json/);
 
     expect(response.body.error).toContain("title / url cannot be missing");
   });
+
+  test("wrong password caused a 401 Unauthorized", async () => {
+    const newBlogPost = {
+      title: "Some foo bar blog",
+      author: "Foo Bar",
+      url: "https://www.example.com",
+      likes: 9,
+    };
+
+    const loginDetails = await api.post("/api/login").send({
+      username: "superroot2",
+      password: "not-the-correct-password",
+    });
+
+    await api
+      .post(blogsUrl)
+      .auth(loginDetails.body.token, { type: "bearer" })
+      .send(newBlogPost)
+      .expect(401)
+      .expect("Content-Type", /application\/json/);
+
+    const blogsInDbAfterPost = await helper.blogsInDatabase();
+    expect(blogsInDbAfterPost).toHaveLength(helper.initialBlogList.length);
+
+    const authors = blogsInDbAfterPost.map((b) => b.author);
+    expect(authors).not.toContain("Foo Bar");
+  });
+
+  test("unregistered user caused a 401 Unauthorized", async () => {
+    const newBlogPost = {
+      title: "Some foo bar blog",
+      author: "Foo Bar",
+      url: "https://www.example.com",
+      likes: 9,
+    };
+
+    const loginDetails = await api.post("/api/login").send({
+      username: "username",
+      password: "superroot2",
+    });
+
+    await api
+      .post(blogsUrl)
+      .auth(loginDetails.body.token, { type: "bearer" })
+      .send(newBlogPost)
+      .expect(401)
+      .expect("Content-Type", /application\/json/);
+
+    const blogsInDbAfterPost = await helper.blogsInDatabase();
+    expect(blogsInDbAfterPost).toHaveLength(helper.initialBlogList.length);
+
+    const authors = blogsInDbAfterPost.map((b) => b.author);
+    expect(authors).not.toContain("Foo Bar");
+  });
 });
 
 describe("deleting of a blog", () => {
+  beforeEach(async () => {
+    await User.deleteMany({});
+    await Blog.deleteMany({});
+
+    const newUserReg = {
+      username: "superroot2",
+      name: "SR2",
+      password: "superroot2",
+    };
+
+    // save user to database using already created router
+    await api.post(usersUrl).send(newUserReg);
+
+    // new user makes a posts with authorization
+    const newBlogPost = {
+      title: "Some foo bar blog",
+      author: "Foo Bar",
+      url: "https://www.example.com",
+      likes: 9,
+    };
+
+    const loginDetails = await api.post("/api/login").send({
+      username: "superroot2",
+      password: "superroot2",
+    });
+
+    await api
+      .post(blogsUrl)
+      .auth(loginDetails.body.token, { type: "bearer" })
+      .send(newBlogPost);
+  });
+
   test("succeeds with status 204 if id is valid", async () => {
     const blogsAtStart = await helper.blogsInDatabase();
-    const blogToDelete = blogsAtStart[0];
 
-    await api.delete(`${blogsUrl}/${blogToDelete.id}`).expect(204);
+    // delete last added blog
+    const blogToDelete = blogsAtStart[blogsAtStart.length - 1];
+
+    const loginDetails = await api.post("/api/login").send({
+      username: "superroot2",
+      password: "superroot2",
+    });
+
+    await api
+      .delete(`${blogsUrl}/${blogToDelete.id}`)
+      .auth(loginDetails.body.token, { type: "bearer" })
+      .expect(204);
 
     // confirm that length of bloglist is reduced
     const blogsAfterDelete = await helper.blogsInDatabase();
-    expect(blogsAfterDelete).toHaveLength(helper.initialBlogList.length - 1);
+    expect(blogsAfterDelete).toHaveLength(blogsAtStart.length - 1);
 
     // confirm that the blog does not really exist
     const blogTitles = blogsAfterDelete.map((blog) => blog.title);
     expect(blogTitles).not.toContain(blogToDelete.title);
   });
+});
 
-  describe("updating a blog", () => {
-    test("update was successful", async () => {
-      const blogsBeforeUpdate = await helper.blogsInDatabase();
-      const blogToUpdate = blogsBeforeUpdate[0];
+describe("updating a blog", () => {
+  test("update was successful", async () => {
+    const blogsBeforeUpdate = await helper.blogsInDatabase();
+    const blogToUpdate = blogsBeforeUpdate[0];
 
-      const blogUpdate = { ...blogToUpdate, likes: blogToUpdate.likes + 1 };
+    const blogUpdate = { ...blogToUpdate, likes: blogToUpdate.likes + 1 };
 
-      // confirm that it returns the updated blog
-      await api
-        .put(`${blogsUrl}/${blogToUpdate.id}`)
-        .send(blogUpdate)
-        .expect(200)
-        .expect("Content-Type", /application\/json/)
-        .expect(blogUpdate);
+    // confirm that it returns the updated blog
+    await api
+      .put(`${blogsUrl}/${blogToUpdate.id}`)
+      .send(blogUpdate)
+      .expect(200)
+      .expect("Content-Type", /application\/json/)
+      .expect(blogUpdate);
 
-      const blogsAfterUpdate = await helper.blogsInDatabase();
-      expect(blogsAfterUpdate[0].likes).toBe(blogToUpdate.likes + 1);
+    const blogsAfterUpdate = await helper.blogsInDatabase();
+    expect(blogsAfterUpdate[0].likes).toBe(blogToUpdate.likes + 1);
 
-      // confirm that length of blogs saved in database remains same as
-      // before update
-      expect(blogsAfterUpdate).toHaveLength(blogsBeforeUpdate.length);
-    });
+    // confirm that length of blogs saved in database remains same as
+    // before update
+    expect(blogsAfterUpdate).toHaveLength(blogsBeforeUpdate.length);
   });
 });
 

@@ -22,16 +22,22 @@ blogsRouter.post("/", async (request, response) => {
 
   const user = await User.findById(decodedToken.id);
 
-  const blog = new Blog({
-    ...body,
-    user: user._id,
-  });
+  if (user) {
+    const blog = new Blog({
+      ...body,
+      user: user._id,
+    });
 
-  const savedBlog = await blog.save();
-  user.blogs = user.blogs.concat(savedBlog._id);
-  await user.save();
+    const savedBlog = await blog.save();
+    user.blogs = user.blogs.concat(savedBlog._id);
+    await user.save();
 
-  response.json(savedBlog);
+    return response.json(savedBlog);
+  }
+
+  response
+    .status(401)
+    .send({ error: "you have not been authorised to make a post" });
 });
 
 blogsRouter.delete("/:id", async (request, response) => {
