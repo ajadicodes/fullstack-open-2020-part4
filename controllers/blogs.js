@@ -85,6 +85,7 @@ blogsRouter.put("/:id", async (request, response) => {
     author: request.body.author,
     url: request.body.url,
     likes: request.body.likes,
+    user: request.body.user,
   };
   const updatedBlog = await Blog.findOneAndReplace(
     { _id: request.params.id },
