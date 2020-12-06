@@ -86,12 +86,52 @@ blogsRouter.put("/:id", async (request, response) => {
     url: request.body.url,
     likes: request.body.likes,
     user: request.body.user,
+    comments: request.body.comments,
   };
   const updatedBlog = await Blog.findOneAndReplace(
     { _id: request.params.id },
     blogToUpdate,
     { returnOriginal: false }
   );
+  response.json(updatedBlog);
+});
+
+blogsRouter.put("/:id/comments", async (request, response) => {
+  // finds the blog to comment on using the id
+  // updates it by creating a completely new
+  // object from the blog in the database.
+  // The response after the operation is then returned
+  // to the client to make use of.
+  // I think i prefer this method compared to the above
+  // approach used for updating likes because it helps
+  // the the `view` to maintain a consistent state with
+  // the server.
+  // All one needs to send to the server is the `identifier`
+  // and the update instead of sending a complete information.
+  // For example, here now, all I needed to send in the
+  // body of the request is the `blog id` and the
+  // new comment.
+  const blogIdQuery = { _id: request.params.id };
+  const blog = await Blog.findOne(blogIdQuery);
+
+  const newComment = request.body.newComment;
+  const blogUpdate = {
+    title: blog.title,
+    author: blog.author,
+    url: blog.url,
+    likes: blog.likes,
+    user: blog.user,
+    comments: [...blog.comments, newComment],
+  };
+
+  console.log("blog update / comments", blogUpdate);
+
+  const updatedBlog = await Blog.findOneAndReplace(
+    { _id: request.params.id },
+    blogUpdate,
+    { returnOriginal: false }
+  );
+
   response.json(updatedBlog);
 });
 

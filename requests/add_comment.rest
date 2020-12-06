@@ -1,0 +1,6 @@
+PUT http://localhost:3001/api/blogs/5fcac2a32bb7580c0c05ad97/comments
+Content-Type: application/json
+
+{
+  "newComment": "comment persists"
+}
